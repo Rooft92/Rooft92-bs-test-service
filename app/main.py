@@ -4,6 +4,7 @@ import hmac
 import html
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 from urllib.parse import parse_qsl
 
@@ -26,6 +27,17 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, version=settings.git_sha, lifespan=lifespan)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Лог запросов без IP клиентов: персональные данные в логи не пишем."""
+    started = time.perf_counter()
+    response = await call_next(request)
+    if request.url.path != "/health":  # healthcheck Docker не шумит в логе
+        log.info("%s %s -> %s за %.0f мс", request.method, request.url.path, response.status_code,
+                 (time.perf_counter() - started) * 1000)
+    return response
 
 
 def parse_form(pairs) -> dict:

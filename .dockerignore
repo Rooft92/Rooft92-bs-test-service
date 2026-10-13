@@ -1,5 +1,8 @@
 .git
 .env
+.secrets
+.report
+deploy
 .venv
 data
 tests

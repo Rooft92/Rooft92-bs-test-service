@@ -1,4 +1,6 @@
 .env
+.secrets/
+.report/
 .venv/
 data/
 *.db

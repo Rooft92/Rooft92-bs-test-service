@@ -39,5 +39,5 @@ docker compose up -d --build
 ```
 
 - **HTTPS.** В `.env` укажите `COMPOSE_PROFILES=https` и `DOMAIN=<ip через дефисы>.sslip.io`. Caddy сам получит сертификат.
-- **Автовыкладка при push.** Запустите `tmux new -s bsdeploy 'bash deploy/autodeploy.sh'`.
+- **Автовыкладка при push.** Запустите `tmux new -s bsdeploy 'bash deploy/autodeploy.sh'`. Если в `.env` задан `REPORT_REPO` (приватный репозиторий), а в `.secrets/deploy_key` лежит его deploy key с правом записи, туда уходит отчёт о состоянии сервера: контейнеры, health, логи без IP клиентов.
 - **Удаление.** `docker compose --profile https down -v --rmi local`, затем удалите папку проекта.
