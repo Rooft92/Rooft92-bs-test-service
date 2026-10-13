@@ -15,6 +15,7 @@ class Settings:
     git_sha: str
     b24_webhook_url: str
     b24_app_token: str
+    orders_url: str
 
 
 settings = Settings(
@@ -26,4 +27,6 @@ settings = Settings(
     b24_webhook_url=env("B24_WEBHOOK_URL"),
     # application_token исходящего вебхука — им проверяем, что событие пришло от нашего портала
     b24_app_token=env("B24_APP_TOKEN"),
+    # Источник «сырых заявок» для мини-синхронизатора (/result)
+    orders_url=env("ORDERS_URL", "https://test.ooobs.ru/api/orders"),
 )

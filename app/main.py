@@ -12,7 +12,7 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import db
+from . import db, orders
 from .config import settings
 
 logging.basicConfig(level=settings.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -150,6 +150,15 @@ def list_errors(limit: int = Query(50, ge=1, le=500)):
     return db.list_errors(limit)
 
 
+@app.get("/result")
+def result():
+    """Мини-синхронизатор: забирает заявки, нормализует телефоны, схлопывает дубли, отдаёт clients + stats."""
+    try:
+        return orders.sync()
+    except Exception as exc:
+        raise HTTPException(502, f"источник заявок недоступен: {exc!r}") from exc
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "version": settings.git_sha}
@@ -158,7 +167,7 @@ def health():
 @app.get("/", response_class=HTMLResponse)
 def index():
     name = html.escape(settings.app_name)
-    links = "".join(f'<li><a href="{p}">{p}</a></li>' for p in ("/docs", "/events", "/errors", "/health"))
+    links = "".join(f'<li><a href="{p}">{p}</a></li>' for p in ("/result", "/docs", "/events", "/errors", "/health"))
     return (
         f"<!doctype html><meta charset='utf-8'><title>{name}</title>"
         f"<body style='font-family:system-ui;max-width:640px;margin:40px auto;padding:0 16px'>"

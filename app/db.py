@@ -27,6 +27,18 @@ CREATE TABLE IF NOT EXISTS errors (
     message    TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS clients (
+    phone      TEXT PRIMARY KEY,
+    name       TEXT,
+    email      TEXT,
+    amount     REAL NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sync_result (
+    id        INTEGER PRIMARY KEY CHECK (id = 1),
+    body      TEXT NOT NULL,
+    synced_at TEXT NOT NULL
+);
 """
 
 
@@ -104,6 +116,33 @@ def log_error(event_id: int | None, context: str, message: str) -> None:
             "INSERT INTO errors (event_id, context, message, created_at) VALUES (?, ?, ?, ?)",
             (event_id, context, message[:2000], now()),
         )
+
+
+def save_sync(result: dict) -> None:
+    """Клиенты — upsert по телефону (повторная синхронизация не плодит дубли), плюс снимок результата."""
+    ts = now()
+    phones = [c["phone"] for c in result["clients"]]
+    with connect() as conn:
+        conn.executemany(
+            "INSERT INTO clients (phone, name, email, amount, updated_at) VALUES (?, ?, ?, ?, ?)"
+            " ON CONFLICT(phone) DO UPDATE SET name = excluded.name, email = excluded.email,"
+            " amount = excluded.amount, updated_at = excluded.updated_at",
+            [(c["phone"], c["name"], c["email"], c["amount"], ts) for c in result["clients"]],
+        )
+        conn.execute(
+            "DELETE FROM clients WHERE phone NOT IN (SELECT value FROM json_each(?))", (json.dumps(phones),)
+        )
+        conn.execute(
+            "INSERT INTO sync_result (id, body, synced_at) VALUES (1, ?, ?)"
+            " ON CONFLICT(id) DO UPDATE SET body = excluded.body, synced_at = excluded.synced_at",
+            (json.dumps(result, ensure_ascii=False), ts),
+        )
+
+
+def last_sync() -> dict | None:
+    with connect() as conn:
+        row = conn.execute("SELECT body FROM sync_result WHERE id = 1").fetchone()
+    return json.loads(row["body"]) if row else None
 
 
 def list_errors(limit: int) -> list[dict]:
