@@ -12,7 +12,7 @@ services:
     ports:
       # По умолчанию приложение доступно только с самого сервера (снаружи — через Caddy).
       # Для выкладки без HTTPS: APP_BIND=0.0.0.0 в .env -> http://<ip>:<APP_PORT>
-      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8000}:8000"
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-18080}:8000"
     restart: unless-stopped
 
   caddy:
