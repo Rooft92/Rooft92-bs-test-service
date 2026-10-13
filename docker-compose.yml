@@ -1,0 +1,37 @@
+# Отдельный проект "bs-test": своя сеть и тома, другие контейнеры на сервере не затрагиваются.
+name: bs-test
+
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      GIT_SHA: ${GIT_SHA:-dev}
+    volumes:
+      - appdata:/app/data
+    ports:
+      # По умолчанию приложение доступно только с самого сервера (снаружи — через Caddy).
+      # Для выкладки без HTTPS: APP_BIND=0.0.0.0 в .env -> http://<ip>:<APP_PORT>
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8000}:8000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]  # включается через COMPOSE_PROFILES=https в .env
+    depends_on: [app]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      HTTPS_PORT: ${HTTPS_PORT:-443}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:${HTTPS_PORT:-443}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  appdata:
+  caddy_data:
+  caddy_config:
